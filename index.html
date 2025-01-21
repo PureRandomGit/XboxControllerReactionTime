@@ -46,7 +46,7 @@
 
     <label>Intake (Controller Button): <input type="number" id="intakeButton" value="4"></label>
     <label>Shoot (Controller Button): <input type="number" id="shootButton" value="5"></label>
-    <label>Up (Controller Button): <input type="number" id="upButton" value="0"></label>
+    <label>Up (Controller Button): <input type="number" id="upButton" value="1"></label>
     <label>Down (Controller Button): <input type="number" id="downButton" value="3"></label>
     <button id="saveSettings">Save Settings</button>
 
@@ -71,7 +71,7 @@
   </div>
 
   <script>
-    const instructions = ["intake",, "shoot", "up", "down"];
+    const instructions = ["intake", "shoot", "up", "down"];
     let currentInstruction = "";
     let currentRound = 0;
     const maxRounds = 10;
@@ -84,7 +84,7 @@
     let buttonMapping = {
       intake: 4,
       shoot: 5,
-      up: 0,
+      up: 1,
       down: 3
     };
 
