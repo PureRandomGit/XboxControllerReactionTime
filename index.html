@@ -1,0 +1,197 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Manip Test</title>
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      text-align: center;
+      margin-top: 50px;
+      background-color: black;
+      color: white;
+    }
+    #instruction {
+      font-size: 2em;
+      margin-bottom: 20px;
+    }
+    #status {
+      font-size: 1.2em;
+      color: gray;
+    }
+    #settings {
+      margin-top: 20px;
+      text-align: left;
+      display: inline-block;
+    }
+    label {
+      display: block;
+      margin: 5px 0;
+    }
+  </style>
+</head>
+<body>
+  <h1 style="color: orangered;">Manip Test</h1>
+  <div id="instruction">Press Start to Begin</div>
+  <button id="startButton">Start</button>
+  <div id="status"></div>
+
+  <div id="settings">
+    <h2 style="color: orangered;">Keybind Settings</h2>
+    <label>Intake (Keyboard): <input type="text" id="intakeKey" value="a"></label>
+    <label>Shoot (Keyboard): <input type="text" id="shootKey" value="w"></label>
+    <label>Up (Keyboard): <input type="text" id="upKey" value="j"></label>
+    <label>Down (Keyboard): <input type="text" id="downKey" value="l"></label>
+
+    <label>Intake (Controller Button): <input type="number" id="intakeButton" value="4"></label>
+    <label>Shoot (Controller Button): <input type="number" id="shootButton" value="5"></label>
+    <label>Up (Controller Button): <input type="number" id="upButton" value="0"></label>
+    <label>Down (Controller Button): <input type="number" id="downButton" value="3"></label>
+    <button id="saveSettings">Save Settings</button>
+
+    <ul>
+      <li>A - 0</li>
+      <li>B - 1</li>
+      <li>X - 2</li>
+      <li>Y - 3</li>
+      <li>LB - 4</li>
+      <li>RB - 5</li>
+      <li>LT - 6</li>
+      <li>RT - 7</li>
+      <li>XBL - 8</li>
+      <li>XBR - 9</li>
+      <li>LS - 10</li>
+      <li>RS - 11</li>
+      <li>Up - 12</li>
+      <li>Down - 13</li>
+      <li>Left - 14</li>
+      <li>Right - 15</li>
+    </ul> 
+  </div>
+
+  <script>
+    const instructions = ["intake",, "shoot", "up", "down"];
+    let currentInstruction = "";
+    let currentRound = 0;
+    const maxRounds = 10;
+    let startTime = 0;
+    let totalReactionTime = 0;
+    let penaltyCount = 0;
+    let isWaiting = false;
+    let gamepadIndex = null;
+
+    let buttonMapping = {
+      intake: 4,
+      shoot: 5,
+      up: 0,
+      down: 3
+    };
+
+    let keyMapping = {
+      intake: "a",
+      shoot: "w",
+      up: "j",
+      down: "l"
+    };
+
+    document.getElementById("saveSettings").addEventListener("click", () => {
+      keyMapping.intake = document.getElementById("intakeKey").value.toLowerCase();
+      keyMapping.shoot = document.getElementById("shootKey").value.toLowerCase();
+      keyMapping.up = document.getElementById("upKey").value.toLowerCase();
+      keyMapping.down = document.getElementById("downKey").value.toLowerCase();
+
+      buttonMapping.intake = parseInt(document.getElementById("intakeButton").value, 10);
+      buttonMapping.shoot = parseInt(document.getElementById("shootButton").value, 10);
+      buttonMapping.up = parseInt(document.getElementById("upButton").value, 10);
+      buttonMapping.down = parseInt(document.getElementById("downButton").value, 10);
+
+      alert("Keybinds and button mappings updated successfully!");
+    });
+
+    window.addEventListener("gamepadconnected", (event) => {
+      document.getElementById("status").textContent = `Controller connected: ${event.gamepad.id}`;
+      gamepadIndex = event.gamepad.index;
+    });
+
+    window.addEventListener("gamepaddisconnected", () => {
+      document.getElementById("status").textContent = "Controller disconnected.";
+      gamepadIndex = null;
+    });
+
+    function getRandomInstruction() {
+      return instructions[Math.floor(Math.random() * instructions.length)];
+    }
+
+    document.getElementById("startButton").addEventListener("click", () => {
+      currentRound = 0;
+      totalReactionTime = 0;
+      penaltyCount = 0;
+      startNextRound();
+    });
+
+    function startNextRound() {
+      if (currentRound >= maxRounds) {
+        const averageReactionTime = (totalReactionTime / (maxRounds - penaltyCount)).toFixed(2);
+        document.getElementById("instruction").textContent = `Test complete! Average Reaction Time: ${averageReactionTime} ms. Penalties: ${penaltyCount}`;
+        return;
+      }
+
+      currentRound++;
+      currentInstruction = getRandomInstruction();
+      document.getElementById("instruction").textContent = `...`;
+
+      const randomDelay = Math.random() * 2000 + 1000;
+      setTimeout(() => {
+        startTime = performance.now();
+        isWaiting = true;
+        document.getElementById("instruction").textContent = currentInstruction;
+      }, randomDelay);
+    }
+
+    function checkGamepadInput() {
+      if (gamepadIndex !== null && isWaiting) {
+        const gamepad = navigator.getGamepads()[gamepadIndex];
+        if (gamepad) {
+          const buttonIndex = buttonMapping[currentInstruction];
+
+          if (buttonIndex !== undefined && gamepad.buttons[buttonIndex]?.pressed) {
+            recordReactionTime("Controller");
+          } else if (gamepad.buttons.some(button => button.pressed)) {
+            penalize("Controller");
+          }
+        }
+      }
+      requestAnimationFrame(checkGamepadInput);
+    }
+
+    window.addEventListener("keydown", (event) => {
+      if (isWaiting) {
+        const requiredKey = keyMapping[currentInstruction];
+        if (event.key.toLowerCase() === requiredKey) {
+          recordReactionTime("Keyboard");
+        } else {
+          penalize("Keyboard");
+        }
+      }
+    });
+
+    function recordReactionTime(inputType) {
+      const reactionTime = performance.now() - startTime;
+      totalReactionTime += reactionTime;
+      document.getElementById("instruction").textContent = `Reaction Time: ${reactionTime.toFixed(2)} ms (${inputType})`;
+      isWaiting = false;
+      setTimeout(startNextRound, 1000);
+    }
+
+    function penalize(inputType) {
+      penaltyCount++;
+      document.getElementById("instruction").textContent = `Incorrect input! (${inputType}) Penalties: ${penaltyCount}`;
+      isWaiting = false;
+      setTimeout(startNextRound, 1000);
+    }
+
+    requestAnimationFrame(checkGamepadInput);
+  </script>
+</body>
+</html>
